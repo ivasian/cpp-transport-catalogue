@@ -3,19 +3,20 @@
 #include <iostream>
 #include <vector>
 #include <cassert>
-#include "transport_catalogue.h"
 #include <iomanip>
 #include <sstream>
 
-namespace transport_catalogue::detail{
-    class OutQueries{
+#include "transport_catalogue.h"
+
+namespace transport_catalogue::detail {
+    class OutQueries {
 
     public:
-        struct BusInfoQuery{
+        struct BusInfoQuery {
             std::string name_;
         };
 
-        struct StopInfoQuery{
+        struct StopInfoQuery {
             std::string name_;
         };
 
@@ -24,16 +25,15 @@ namespace transport_catalogue::detail{
         }
 
         void readInput();
-        void writeAnswer();
 
         BusInfoQuery parseBusInfoQuery(std::string& busInfoQuery);
-
-
-        const std::vector<BusInfoQuery>& GetBusInfoQueries() const;
-        void executeQueries(TransportCatalogue& catalogue, std::ostream& out);
         StopInfoQuery parseStopInfoQuery(std::string& stopInfoQuery);
+
         void executeStopInfoQuery(StopInfoQuery query);
         void executeBusInfoQuery(BusInfoQuery query);
+
+        const std::vector<BusInfoQuery>& GetBusInfoQueries() const;
+
             private:
         std::vector<BusInfoQuery> busInfoQueries_;
         std::vector<BusInfoQuery> stopInfoQueries_;

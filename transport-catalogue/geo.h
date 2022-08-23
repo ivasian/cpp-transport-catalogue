@@ -1,12 +1,18 @@
 #pragma once
 
 #include <cmath>
+#include <limits>
 
 struct Coordinates {
-    double lat;
-    double lng;
+    double lat = 0.0;
+    double lng = 0.0;
+
+    bool IsDoubleEqual(double x, double y) const {
+        return std::fabs(x - y) < std::numeric_limits<double>::epsilon();
+    }
+
     bool operator==(const Coordinates& other) const {
-        return lat == other.lat && lng == other.lng;
+        return IsDoubleEqual(lat, other.lat) && IsDoubleEqual(lng, other.lng);
     }
     bool operator!=(const Coordinates& other) const {
         return !(*this == other);

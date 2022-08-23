@@ -7,17 +7,18 @@
 #include <unordered_map>
 #include <unordered_set>
 #include <string_view>
-#include "geo.h"
 #include <algorithm>
 #include <functional>
 #include <cassert>
 #include <sstream>
 
+#include "geo.h"
+
 namespace transport_catalogue {
 
 struct Bus;
 
-struct Stop{
+struct Stop {
     std::string name_;
     Coordinates coordinates_;
 
@@ -27,71 +28,88 @@ struct Stop{
             name_(name), coordinates_(coordinates){
     };
 
-    bool operator == (const Stop& stop) const {
+    bool operator==(const Stop& stop) const {
         return name_ == stop.name_ && coordinates_ == stop.coordinates_;
     }
 
 };
-struct Bus{
+struct Bus {
     std::string name_;
     std::vector<const Stop*> route_;
+    std::unordered_set <uintptr_t, std::hash<uintptr_t>> uniqueStops;
 
     Bus() = default;
 
     Bus(const std::string& name, const std::vector<const Stop*>& route) :
-            name_(name), route_(route){
+            name_(name), route_(route) {
+        for(auto stop : route_) {
+            uniqueStops.insert(reinterpret_cast<uintptr_t>(stop));
+        }
     }
 
-    bool operator == (const Bus& bus) const {
+    bool operator==(const Bus& bus) const {
         return name_ == bus.name_ && route_ == bus.route_;
     }
 };
 
-struct BusInfo{
+struct BusInfo {
     const std::string_view name_;
-    const size_t stops_amount_;
-    const size_t unique_stops_amount_;
-    const double route_length_;
+    const size_t stopsAmount_;
+    const size_t uniqueStopsAmount_;
+    const double routeLength_;
     const double curvature_;
 
-    BusInfo(const std::string_view name, const size_t stops_amount,
-                const size_t unique_stops_amount, const double route_length, const double curvature) :
-            name_(name), stops_amount_(stops_amount),
-                unique_stops_amount_(unique_stops_amount), route_length_(route_length), curvature_(curvature){
+    BusInfo(const std::string_view name, const size_t stopsAmount,
+                const size_t uniqueStopsAmount, const double routeLength, const double curvature) :
+            name_(name), stopsAmount_(stopsAmount),
+                uniqueStopsAmount_(uniqueStopsAmount), routeLength_(routeLength), curvature_(curvature){
     }
 
-    bool operator == (const BusInfo& busInfo) const {
-        return name_ == busInfo.name_ && stops_amount_ == busInfo.stops_amount_ &&
-                unique_stops_amount_ == busInfo.unique_stops_amount_  && route_length_ == busInfo.route_length_
+    bool operator==(const BusInfo& busInfo) const {
+        return name_ == busInfo.name_ && stopsAmount_ == busInfo.stopsAmount_ &&
+                uniqueStopsAmount_ == busInfo.uniqueStopsAmount_  && routeLength_ == busInfo.routeLength_
                 && curvature_ == busInfo.curvature_;
     }
 };
 
 
-class TransportCatalogue{
+class TransportCatalogue {
 
 public:
     TransportCatalogue() = default;
+
     void AddStop(const Stop& stop);
     void AddBus(const Bus& bus);
-    const Bus& GetBus(const std::string& name) const;
-    const Stop& GetStop(const std::string& name) const;
-    BusInfo GetBusInfo(const std::string& name);
-    const std::set<std::string_view> GetStopInfo(const std::string& name);
+    void SetStopsDistance(const Stop* stopFrom, const Stop* stopTo, int distance);
+
+    const Bus& GetBus(const std::string& busName) const;
+    const Stop& GetStop(const std::string& stopName) const;
+    BusInfo GetBusInfo(const std::string& busName);
+    const std::set<std::string_view> GetStopInfo(const std::string& stopName);
+
     double ComputeRouteDistance(const Bus& bus) const;
     double ComputeRealRouteDistance(const Bus& bus) const;
-    void AddStopsDistance(const Stop* stop1, const Stop* stop2, int distance);
+
 
 private:
+
+    class PairOfPointerHasher {
+    public:
+        size_t operator()(const std::pair<const Stop*, const Stop*>& pointers) const {
+            return reinterpret_cast<uintptr_t>(pointers.first) +
+                    reinterpret_cast<uintptr_t>(pointers.second) * 67;
+        }
+    };
+
     std::deque<Stop> stops_;
-    std::map<std::string_view, const Stop&> name_to_stops_;
+    std::unordered_map<std::string_view, const Stop&, std::hash<std::string_view>> stopByName_;
 
     std::deque<Bus> buses_;
-    std::map<std::string_view, const Bus&> name_to_buses_;
+    std::unordered_map<std::string_view, const Bus&, std::hash<std::string_view>> busByName_;
 
-    std::map<std::string_view, std::set<std::string_view>> stop_to_buses_;
+    std::unordered_map<std::string_view, std::set<std::string_view>, std::hash<std::string_view>> busesByStopName;
 
-    std::map<std::pair<const Stop*, const Stop*>, int> stop_distances_;
+    std::unordered_map<std::pair<const Stop*, const Stop*>, int, PairOfPointerHasher> stopDistances_;
 
 };
 

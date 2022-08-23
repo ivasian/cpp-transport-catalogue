@@ -4,7 +4,7 @@
 using transport_catalogue::detail::InQueries;
 using transport_catalogue::TransportCatalogue;
 
-void InQueries::readInput(std::istream& input){
+void InQueries::readInput(std::istream& input) {
     int n;
     input >> n;
     std::string buffer;
@@ -15,32 +15,32 @@ void InQueries::readInput(std::istream& input){
         while(std::isspace(buffer[key_word_begin])){
             ++key_word_begin;
         }
-        if (buffer.find("Bus", key_word_begin, 3) != std::string::npos){
+        if (buffer.find("Bus", key_word_begin, 3) != std::string::npos) {
             buses.push_back(parseBus(buffer));
-        } else if(buffer.find("Stop", key_word_begin, 4) != std::string::npos){
+        } else if(buffer.find("Stop", key_word_begin, 4) != std::string::npos) {
             stops.push_back(parseStop(buffer));
         }
     }
 }
 
-void InQueries::executeQueries(TransportCatalogue& catalogue){
-    for(auto stop : stops){
+void InQueries::executeQueries(TransportCatalogue& catalogue) {
+    for(auto stop : stops) {
         catalogue.AddStop({std::move(stop.name_), {stop.latitude, stop.longitude}});
     }
 
-    for(auto bus : buses){
+    for(auto bus : buses) {
         std::vector<const Stop*> route;
-        for(std::string& stopName : bus.stopNames){
+        for(std::string& stopName : bus.stopNames) {
             route.push_back(&catalogue.GetStop(stopName));
         }
         catalogue.AddBus({std::move(bus.name_), std::move(route)});
     }
 
-    for(auto stop : stops){
-        const Stop* stop1InCatalogue = &catalogue.GetStop(stop.name_);
-        for(auto &[stop2, distance] : stop.distance_to_stops){
-            const Stop* stop2InCatalogue = &catalogue.GetStop(stop2);
-            catalogue.AddStopsDistance(stop1InCatalogue, stop2InCatalogue, distance);
+    for(auto stopFrom : stops) {
+        const Stop* stopFromInCatalogue = &catalogue.GetStop(stopFrom.name_);
+        for(auto &[stopTo, distance] : stopFrom.distance_to_stops) {
+            const Stop* stopToInCatalogue = &catalogue.GetStop(stopTo);
+            catalogue.SetStopsDistance(stopFromInCatalogue, stopToInCatalogue, distance);
         }
     }
 
@@ -54,20 +54,15 @@ InQueries::StopQuery InQueries::parseStop(std::string& stopQuery) {
     std::vector<std::pair<std::string, int>> stops_distances;
     std::string_view str_view = stopQuery;
     size_t index = str_view.find("Stop"s) + 5;
-    while (str_view[index] == ' '){
+    while (str_view[index] == ' ') {
         ++index;
     }
     str_view.remove_prefix(index);
     index = str_view.find(":"s);
-    while (str_view[index - 1] == ' '){
+    while (str_view[index - 1] == ' ') {
         --index;
     }
     std::string_view name = str_view.substr(0, index);
-
-
-//    std::cout << name << std::endl;
-
-
 
     str_view.remove_prefix(index);
     index = str_view.find(":"s);
@@ -78,27 +73,27 @@ InQueries::StopQuery InQueries::parseStop(std::string& stopQuery) {
     double longitude = std::stod(std::string(str_view));
 
     index = str_view.find(","s);
-    if(index != std::string::npos){
+    if(index != std::string::npos) {
         str_view.remove_prefix(index + 1);
         int distance = 0;
-        while (true){
+        while (true) {
             distance = std::stoi(std::string (str_view), &index);
             index = str_view.find("to "s);
-            index+=3;
+            index += 3;
             str_view.remove_prefix(index);
-            while(isspace(str_view[index])){
+            while(isspace(str_view[index])) {
                 ++index;
             }
             index = str_view.find(","s);
-            if(index == std::string::npos){
-                while(isspace(str_view[str_view.size()-1])){
+            if(index == std::string::npos) {
+                while(isspace(str_view[str_view.size() - 1])) {
                     str_view.remove_suffix(1);
                 }
                 std::string stop(str_view);
                 stops_distances.push_back({std::move(stop), distance});
                 break;
             } else{
-                while(isspace(str_view[index-1])){
+                while(isspace(str_view[index - 1])){
                     --index;
                 }
                 std::string stop(str_view.substr(0, index));
@@ -117,15 +112,15 @@ InQueries::BusQuery InQueries::parseBus(std::string& busQuery) {
     bool busFl = false, nameFl = false;
     bool isRingRoute = (busQuery.find('>') != std::string::npos);
     std::string stop;
-    for(char a : busQuery){
+    for(char a : busQuery) {
         if(!busFl){
-            if(a == ' '){
+            if(a == ' ') {
                 busFl = true;
             }
             continue;
         }
-        if(!nameFl){
-            if(a == ':'){
+        if(!nameFl) {
+            if(a == ':') {
                 nameFl = true;
             } else {
                 bus.name_.push_back(a);
@@ -143,18 +138,18 @@ InQueries::BusQuery InQueries::parseBus(std::string& busQuery) {
             stop.clear();
         }
     }
-    if(!stop.empty()){
+    if(!stop.empty()) {
         bus.stopNames.push_back(stop);
     }
-    if(!isRingRoute){
-        for(int i = bus.stopNames.size() - 2; i >= 0; --i){
+    if(!isRingRoute) {
+        for(int i = bus.stopNames.size() - 2; i >= 0; --i) {
             bus.stopNames.push_back(bus.stopNames[i]);
         }
     }
     return {std::move(bus.name_), std::move(bus.stopNames)};
 }
 
-void transport_catalogue::detail::tests::InQueriesToCatalogue(TransportCatalogue& catalogue){
+void transport_catalogue::detail::tests::InQueriesToCatalogue(TransportCatalogue& catalogue) {
     InQueries a;
     std::stringstream queries;
 

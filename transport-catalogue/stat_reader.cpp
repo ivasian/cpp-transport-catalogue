@@ -2,7 +2,7 @@
 
 using transport_catalogue::detail::OutQueries;
 
-void OutQueries::readInput(){
+void OutQueries::readInput() {
     int n;
     in_ >> n;
     std::string buffer;
@@ -10,7 +10,7 @@ void OutQueries::readInput(){
     while(n-- != 0){
         std::getline(in_, buffer);
         size_t key_word_begin = 0;
-        while(std::isspace(buffer[key_word_begin])){
+        while(std::isspace(buffer[key_word_begin])) {
             ++key_word_begin;
         }
         if(buffer.find("Bus", key_word_begin, 3) != std::string::npos){
@@ -21,65 +21,65 @@ void OutQueries::readInput(){
     }
 }
 
-OutQueries::BusInfoQuery OutQueries::parseBusInfoQuery(std::string& busInfoQuery){
+OutQueries::BusInfoQuery OutQueries::parseBusInfoQuery(std::string& busInfoQuery) {
     bool busKeyWord = true;
     std::string name;
-    for(char a : busInfoQuery){
-        if(busKeyWord){
-            if(a == ' '){
+    for(char a : busInfoQuery) {
+        if(busKeyWord) {
+            if(a == ' ') {
                 busKeyWord = false;
             }
             continue;
         }
-        if(!(name.empty() && a == ' ')){
+        if(!(name.empty() && a == ' ')) {
             name.push_back(a);
         }
     }
     return {std::move(name)};
 }
 
-OutQueries::StopInfoQuery OutQueries::parseStopInfoQuery(std::string& stopInfoQuery){
+OutQueries::StopInfoQuery OutQueries::parseStopInfoQuery(std::string& stopInfoQuery) {
     bool busKeyWord = true;
     std::string name;
-    for(char a : stopInfoQuery){
-        if(busKeyWord){
-            if(a == ' '){
+    for(char a : stopInfoQuery) {
+        if(busKeyWord) {
+            if(a == ' ') {
                 busKeyWord = false;
             }
             continue;
         }
-        if(!(name.empty() && a == ' ')){
+        if(!(name.empty() && a == ' ')) {
             name.push_back(a);
         }
     }
     return {std::move(name)};
 }
 
-const std::vector<OutQueries::BusInfoQuery>& OutQueries::GetBusInfoQueries() const{
+const std::vector<OutQueries::BusInfoQuery>& OutQueries::GetBusInfoQueries() const {
     return OutQueries::busInfoQueries_;
 }
 
 
-void OutQueries::executeBusInfoQuery(BusInfoQuery query){
+void OutQueries::executeBusInfoQuery(BusInfoQuery query) {
     using namespace std::literals;
     out_ << std::setprecision(6);
     try{
         auto busInfo = transportCatalogue_.GetBusInfo(query.name_);
-        out_ << "Bus "s << busInfo.name_ << ": "s << busInfo.stops_amount_
-            << " stops on route, "s << busInfo.unique_stops_amount_
-            << " unique stops, "s << busInfo.route_length_ << " route length, "
+        out_ << "Bus "s << busInfo.name_ << ": "s << busInfo.stopsAmount_
+            << " stops on route, "s << busInfo.uniqueStopsAmount_
+            << " unique stops, "s << busInfo.routeLength_ << " route length, "
             << busInfo.curvature_ << " curvature"s <<std::endl;
-    } catch (...){
+    } catch (...) {
         out_ << "Bus "s << query.name_ << ": not found" << std::endl;
     }
 }
 
-void OutQueries::executeStopInfoQuery(StopInfoQuery query){
+void OutQueries::executeStopInfoQuery(StopInfoQuery query) {
     using namespace std::literals;
     out_ << std::setprecision(6);
-    try{
+    try {
         const std::set<std::string_view> buses = transportCatalogue_.GetStopInfo(query.name_);
-        if(buses.empty()){
+        if(buses.empty()) {
             out_ << "Stop "s << query.name_ << ": no buses"s;
         } else {
             out_ << "Stop "s << query.name_ << ": buses "s;
@@ -93,12 +93,12 @@ void OutQueries::executeStopInfoQuery(StopInfoQuery query){
             }
         }
         out_ << std::endl;
-    } catch (...){
+    } catch (...) {
         out_ << "Stop "s << query.name_ << ": not found" << std::endl;
     }
 }
 
-void transport_catalogue::detail::tests::OutQueriesFromCatalogue(transport_catalogue::TransportCatalogue& catalogue){
+void transport_catalogue::detail::tests::OutQueriesFromCatalogue(transport_catalogue::TransportCatalogue& catalogue) {
     using namespace std::literals;
     catalogue.AddStop({"Tolstopaltsevo"s, {55.611087, 37.208290}});
     catalogue.AddStop({"Marushkino"s, {55.595884, 37.209755}});

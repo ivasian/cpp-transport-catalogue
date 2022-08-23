@@ -6,7 +6,7 @@
 
 
 
-void forMainProgram(){
+void MainProgramExecution(){
     using namespace transport_catalogue;
     TransportCatalogue catalogue;
     detail::InQueries inQueries;
@@ -17,7 +17,7 @@ void forMainProgram(){
     outQueries.readInput();
 }
 
-void forTesting(){
+void TestingExecution(){
     using namespace transport_catalogue;
     {
         TransportCatalogue catalogue;
@@ -43,7 +43,7 @@ void forTesting(){
 
 
 int main() {
-    forMainProgram();
-    //forTesting();
+    MainProgramExecution();
+    //TestingExecution();
     return 0;
 }
