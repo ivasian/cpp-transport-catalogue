@@ -1,21 +1,21 @@
 #include "json_reader.h"
-
+#include "json_builder.h"
 
 
 TransportCatalogue JsonReader::BuildCatalogueBase(const Document& doc){
     using namespace std::literals;
     TransportCatalogue catalogue;
     auto& node = doc.GetRoot();
-    auto& baseRequests = node.AsMap().at("base_requests"s).AsArray();
+    auto& baseRequests = node.AsDict().at("base_requests"s).AsArray();
     std::vector<StopQuery> stops;
     std::vector<BusQuery> buses;
     for(auto& elem : baseRequests) {
-        if(elem.AsMap().at("type"s) == "Stop"s) {
-            auto& stopNode = elem.AsMap();
+        if(elem.AsDict().at("type"s) == "Stop"s) {
+            auto& stopNode = elem.AsDict();
             stops.push_back({stopNode.at("name"s).AsString(), stopNode.at("latitude"s).AsDouble(),
                              stopNode.at("longitude"s).AsDouble(), GetDistanceToStops(stopNode.at("road_distances"s))});
-        } else if(elem.AsMap().at("type"s) == "Bus"s) {
-            auto& busNode = elem.AsMap();
+        } else if(elem.AsDict().at("type"s) == "Bus"s) {
+            auto& busNode = elem.AsDict();
             bool isRingRoute = busNode.at("is_roundtrip"s).AsBool();
             auto busStops = GetStopNamesInRoute(busNode.at("stops"s));
             if(!isRingRoute) {
@@ -25,7 +25,7 @@ TransportCatalogue JsonReader::BuildCatalogueBase(const Document& doc){
             }
             buses.push_back({busNode.at("name"s).AsString(), busStops, isRingRoute});
         } else {
-            assert(elem.AsMap().at("type"s) == "Stop"s || elem.AsMap().at("type"s) == "Bus"s);
+            assert(elem.AsDict().at("type"s) == "Stop"s || elem.AsDict().at("type"s) == "Bus"s);
         }
     }
     LoadDataInCatalogue(catalogue, stops, buses);
@@ -35,7 +35,7 @@ TransportCatalogue JsonReader::BuildCatalogueBase(const Document& doc){
 RenderSettings JsonReader::GetMapRenderSettings(const Document& doc){
     using namespace std::literals;
     auto &node = doc.GetRoot();
-    auto &renderSettingsNode = node.AsMap().at("render_settings"s).AsMap();
+    auto &renderSettingsNode = node.AsDict().at("render_settings"s).AsDict();
     return {renderSettingsNode.at("width"s).AsDouble(),
             renderSettingsNode.at("height"s).AsDouble(),
             renderSettingsNode.at("padding"s).AsDouble(),
@@ -54,7 +54,7 @@ RenderSettings JsonReader::GetMapRenderSettings(const Document& doc){
 
 StopsDistancesArray  JsonReader::GetDistanceToStops(const Node& nodeWithStopNamesAndDistance){
     StopsDistancesArray distanceToStops;
-    for(auto& [stopName, distance] : nodeWithStopNamesAndDistance.AsMap()){
+    for(auto& [stopName, distance] : nodeWithStopNamesAndDistance.AsDict()){
         distanceToStops.push_back({stopName, distance.AsInt()});
     }
     return distanceToStops;

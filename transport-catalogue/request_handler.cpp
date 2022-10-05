@@ -1,4 +1,5 @@
 #include "request_handler.h"
+#include "json_builder.h"
 
 RequestHandler::RequestHandler(const TransportCatalogue& db,
                                const MapRenderer& renderer) :
@@ -148,7 +149,6 @@ void RequestHandler::RenderStopsIcons(svg::Document& doc, SphereProjector& spher
         renderer_.SetStopsIconsProperties(circle, sphereProjector(stopPtr->coordinates_));
         doc.Add(circle);
     }
-
 }
 
 void RequestHandler::RenderStopsNames(svg::Document& doc, renderer::SphereProjector& sphereProjector) const {
@@ -170,42 +170,42 @@ void RequestHandler::RenderStopsNames(svg::Document& doc, renderer::SphereProjec
 json::Document RequestHandler::ExecuteQuery(const json::Document& doc) const {
     using namespace std::literals;
     auto &node = doc.GetRoot();
-    auto &statRequests = node.AsMap().at("stat_requests"s).AsArray();
+    auto &statRequests = node.AsDict().at("stat_requests"s).AsArray();
     json::Array answer;
     for (auto &request: statRequests) {
-        int id = request.AsMap().at("id"s).AsInt();
-        json::Dict dict;
-        dict.insert({"request_id"s, json::Node(id)});
+        int id = request.AsDict().at("id"s).AsInt();
+        json::Dict dict = json::Builder{}.StartDict().Key("request_id"s).Value(id).EndDict().Build().AsDict();
         try {
-            if (request.AsMap().at("type"s).AsString() == "Stop"s) {
-                std::string stopName = request.AsMap().at("name"s).AsString();
+            if (request.AsDict().at("type"s).AsString() == "Stop"s) {
+                std::string stopName = request.AsDict().at("name"s).AsString();
                 json::Array buses;
                 for (const auto &bus: db_.GetStopInfo(stopName)) {
-                    buses.push_back(json::Node(std::string(bus)));
+                    buses.push_back(json::Builder{}.Value(std::string(bus)).Build());
                 }
                 dict.insert({"buses"s, buses});
-            } else if (request.AsMap().at("type"s).AsString() == "Bus"s) {
-                std::string busName = request.AsMap().at("name"s).AsString();
+            } else if (request.AsDict().at("type"s).AsString() == "Bus"s) {
+                std::string busName = request.AsDict().at("name"s).AsString();
                 auto busInfo = db_.GetBusInfo(busName);
-                dict.insert({"curvature"s, json::Node(busInfo.curvature_)});
-                dict.insert({"route_length"s, json::Node(busInfo.routeLength_)});
-                dict.insert({"stop_count"s, json::Node((int) busInfo.stopsAmount_)});
-                dict.insert({"unique_stop_count"s, json::Node((int) busInfo.uniqueStopsAmount_)});
-            } else if (request.AsMap().at("type"s).AsString() == "Map"s) {
+
+                dict.insert({"curvature"s, json::Builder{}.Value(busInfo.curvature_).Build()});
+                dict.insert({"route_length"s, json::Builder{}.Value(busInfo.routeLength_).Build()});
+                dict.insert({"stop_count"s, json::Builder{}.Value((int) busInfo.stopsAmount_).Build()});
+                dict.insert({"unique_stop_count"s, json::Builder{}.Value((int) busInfo.uniqueStopsAmount_).Build()});
+            } else if (request.AsDict().at("type"s).AsString() == "Map"s) {
                 std::ostringstream buf;
                 svg::Document doc;
                 RenderMap(buf);
-                dict.insert({"map"s, json::Node(buf.str())});
+                dict.insert({"map"s, json::Builder{}.Value(buf.str()).Build()});
             } else {
-                assert(request.AsMap().at("type"s).AsString() == "Bus"s ||
-                       request.AsMap().at("type"s).AsString() == "Stop"s ||
-                       request.AsMap().at("type"s).AsString() == "Map"s);
+                assert(request.AsDict().at("type"s).AsString() == "Bus"s ||
+                       request.AsDict().at("type"s).AsString() == "Stop"s ||
+                       request.AsDict().at("type"s).AsString() == "Map"s);
             }
         }
         catch (...) {
-            dict.insert({"error_message"s, json::Node("not found"s)});
+            dict.insert({"error_message"s, json::Builder{}.Value("not found"s).Build()});
         }
-        answer.push_back(json::Node(dict));
+        answer.push_back(json::Builder{}.Value(dict).Build());
     }
     return json::Document(answer);
 }
