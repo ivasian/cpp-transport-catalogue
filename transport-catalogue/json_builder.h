@@ -7,73 +7,71 @@
 
 namespace json {
 
-    class AfterKey;
-    class Builder;
-    class AfterStartArrayValue;
 
-    class AfterKeyValue {
-
-    public:
-        AfterKeyValue(Builder& builder);
-        AfterKey Key(const std::string& key);
-        Builder& EndDict();
-
-    private:
-        Builder &builder_;
-    };
-
-    class AfterStartDict {
-
-    public:
-        AfterStartDict(Builder& builder);
-        AfterKey Key(const std::string& key);
-        Builder& EndDict();
-
-    private:
-        Builder &builder_;
-    };
-
-    class AfterStartArray {
-
-    public:
-        AfterStartArray(Builder& builder);
-        AfterStartArrayValue Value(const Node& node);
-        AfterStartDict StartDict();
-        AfterStartArray& StartArray();
-        Builder& EndArray();
-
-    private:
-        Builder &builder_;
-    };
-
-    class AfterKey {
-
-    public:
-        AfterKey(Builder& builder);
-        AfterKeyValue Value(const Node& node);
-        AfterStartDict StartDict();
-        AfterStartArray StartArray();
-
-    private:
-        Builder &builder_;
-    };
-
-    class AfterStartArrayValue {
-
-    public:
-        AfterStartArrayValue(Builder& builder);
-        AfterStartArrayValue& Value(const Node& node);
-        AfterStartDict StartDict();
-        AfterStartArray StartArray();
-        Builder& EndArray();
-
-    private:
-        Builder &builder_;
-    };
 
     class Builder {
 
     public:
+        class AfterStartArray;
+        class AfterKey;
+        class AfterStartArrayValue;
+        class AfterStartDict;
+
+        class ReturnType {
+
+        public:
+
+            ReturnType(Builder& builder);
+            AfterKey Key(const std::string& key);
+            Builder& EndDict();
+            AfterStartDict StartDict();
+            AfterStartArray StartArray();
+            Builder& EndArray();
+        protected:
+            Builder &builder_;
+        };
+
+
+        class AfterStartDict : public ReturnType {
+
+        public:
+
+            AfterStartDict StartDict() = delete;
+            AfterStartArray StartArray() = delete;
+            Builder& EndArray() = delete;
+
+        };
+
+        class AfterStartArray : public ReturnType {
+        public:
+
+            AfterStartArrayValue Value(const Node& node);
+
+            AfterKey Key(const std::string& key) = delete;
+            Builder& EndDict() = delete;
+
+        };
+
+        class AfterKey : public ReturnType {
+
+        public:
+
+            AfterStartDict Value(const Node& node);
+
+            AfterKey Key(const std::string& key) = delete;
+            Builder& EndDict() = delete;
+        };
+
+        class AfterStartArrayValue : public ReturnType {
+
+        public:
+
+            AfterStartArrayValue Value(const Node& node);
+
+            AfterKey Key(const std::string& key) = delete;
+            Builder& EndDict() = delete;
+        };
+
         Builder();
         AfterStartDict StartDict();
         Builder& EndDict();
@@ -84,7 +82,17 @@ namespace json {
         Node& Build();
 
     private:
-        enum class JBOperations {Builder, StartDict, EndDict, Key, Value, StartArray, EndArray, Build};
+        enum class JBOperations {
+            Builder,
+            StartDict,
+            EndDict,
+            Key,
+            Value,
+            StartArray,
+            EndArray,
+            Build
+        };
+
         std::string GetJBOperationName(const JBOperations& operation);
         void CheckJsonValue(const JBOperations& operation);
         void CheckAndCreateOperationOrder(const JBOperations& operation);

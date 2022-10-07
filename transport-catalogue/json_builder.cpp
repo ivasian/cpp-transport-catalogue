@@ -3,84 +3,56 @@
 
 namespace json {
 
-    AfterStartArrayValue::AfterStartArrayValue(Builder& builder): builder_(builder) {
-    }
-    AfterStartArrayValue& AfterStartArrayValue::Value(const Node& node) {
-        builder_.Value(node);
-        return *this;
-    }
-    AfterStartDict AfterStartArrayValue::StartDict() {
-        builder_.StartDict();
-        return {builder_};
-    }
-    AfterStartArray AfterStartArrayValue::StartArray() {
-        builder_.StartArray();
-        return {builder_};
-    }
-    Builder& AfterStartArrayValue::EndArray() {
-        builder_.EndArray();
-        return builder_;
-    }
+    using ReturnType = Builder::ReturnType;
+    using AfterKey = Builder::AfterKey;
+    using AfterStartDict = Builder::AfterStartDict;
+    using AfterStartArray = Builder::AfterStartArray;
+    using AfterStartArrayValue = Builder::AfterStartArrayValue;
 
-    AfterStartArray::AfterStartArray(Builder& builder) : builder_(builder) {
+    ReturnType::ReturnType(Builder& builder) : builder_(builder){
     }
+    AfterKey ReturnType::Key(const std::string& key) {
+            builder_.Key(key);
+            return {builder_};
+        }
+    Builder& ReturnType::EndDict() {
+            builder_.EndDict();
+            return builder_;
+        }
+    AfterStartDict ReturnType::StartDict() {
+            builder_.StartDict();
+            return {builder_};
+        }
+    AfterStartArray ReturnType::StartArray() {
+            builder_.StartArray();
+            return {builder_};
+        }
+    Builder& ReturnType::EndArray() {
+            builder_.EndArray();
+            return builder_;
+        }
+
+
     AfterStartArrayValue AfterStartArray::Value(const Node& node) {
         builder_.Value(node);
         return {builder_};
     }
-    AfterStartDict AfterStartArray::StartDict() {
-        builder_.StartDict();
-        return {builder_};
-    }
-    AfterStartArray& AfterStartArray::StartArray() {
-        builder_.StartArray();
-        return *this;
-    }
-    Builder& AfterStartArray::EndArray() {
-        builder_.EndArray();
-        return builder_;
-    }
 
-    AfterStartDict::AfterStartDict(Builder& builder) : builder_(builder) {
-    }
-    AfterKey AfterStartDict::Key(const std::string& key) {
-        builder_.Key(key);
-        return {builder_};
-    }
-    Builder& AfterStartDict::EndDict() {
-        builder_.EndDict();
-        return builder_;
-    }
-    AfterKeyValue::AfterKeyValue(Builder& builder) : builder_(builder) {
-    }
-    AfterKey AfterKeyValue::Key(const std::string& key) {
-        builder_.Key(key);
-        return {builder_};
-    }
-    Builder& AfterKeyValue::EndDict() {
-        builder_.EndDict();
-        return builder_;
-    }
-
-    AfterKey::AfterKey(Builder& builder) : builder_(builder) {
-    }
-    AfterKeyValue AfterKey::Value(const Node& node) {
+    AfterStartDict AfterKey::Value(const Node& node) {
         builder_.Value(node);
         return {builder_};
     }
-    AfterStartDict AfterKey::StartDict() {
-        builder_.StartDict();
+
+    AfterStartArrayValue AfterStartArrayValue::Value(const Node& node) {
+        builder_.Value(node);
         return {builder_};
     }
-    AfterStartArray AfterKey::StartArray() {
-        builder_.StartArray();
-        return {builder_};
-    }
+
 
     Builder::Builder() {
         operations_.push_front(JBOperations::Builder);
     }
-    AfterStartDict Builder::StartDict() {
+    Builder::AfterStartDict Builder::StartDict() {
         CheckAndCreateOperationOrder(JBOperations::StartDict);
         if(incompleteNodes_.empty()) {
             root_ = Dict {};
@@ -107,7 +79,7 @@ namespace json {
         incompleteNodes_.pop_front();
         return *this;
     }
-    AfterStartArray Builder::StartArray() {
+    Builder::AfterStartArray Builder::StartArray() {
         CheckAndCreateOperationOrder(JBOperations::StartArray);
         if(incompleteNodes_.empty()) {
             root_ = Array {};
