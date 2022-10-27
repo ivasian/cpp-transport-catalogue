@@ -2,8 +2,9 @@
 #include "json_builder.h"
 
 RequestHandler::RequestHandler(const TransportCatalogue& db,
-                               const MapRenderer& renderer) :
-        db_(db), renderer_(renderer) {
+                               const MapRenderer& renderer,
+                               const TransportRouter& routeBuilder) :
+        db_(db), renderer_(renderer), routeBuilder_(routeBuilder){
 }
 
 std::vector<geo::Coordinates> RequestHandler::GetAllStopsCoordinates() const {
@@ -167,6 +168,63 @@ void RequestHandler::RenderStopsNames(svg::Document& doc, renderer::SphereProjec
     }
 }
 
+void RequestHandler::ExecuteStopQuery(json::Dict& outDict, const json::Node& request) const {
+    using namespace std::literals;
+    std::string stopName = request.AsDict().at("name"s).AsString();
+    json::Array buses;
+    for (const auto &bus: db_.GetStopInfo(stopName)) {
+        buses.push_back(json::Builder{}.Value(std::string(bus)).Build());
+    }
+    outDict.insert({"buses"s, buses});
+}
+
+void RequestHandler::ExecuteBusQuery(json::Dict& outDict, const json::Node& request) const {
+    using namespace std::literals;
+    std::string busName = request.AsDict().at("name"s).AsString();
+    auto busInfo = db_.GetBusInfo(busName);
+    outDict.insert({"curvature"s, json::Builder{}.Value(busInfo.curvature_).Build()});
+    outDict.insert({"route_length"s, json::Builder{}.Value(busInfo.routeLength_).Build()});
+    outDict.insert({"stop_count"s, json::Builder{}.Value((int) busInfo.stopsAmount_).Build()});
+    outDict.insert({"unique_stop_count"s, json::Builder{}.Value((int) busInfo.uniqueStopsAmount_).Build()});
+}
+
+void RequestHandler::ExecuteMapQuery(json::Dict& outDict) const {
+    using namespace std::literals;
+    std::ostringstream buf;
+    svg::Document doc;
+    RenderMap(buf);
+    outDict.insert({"map"s, json::Builder{}.Value(buf.str()).Build()});
+}
+
+void RequestHandler::ExecuteRouteQuery(json::Dict& outDict, const json::Node& request) const {
+    using namespace std::literals;
+    std::string routeFrom = request.AsDict().at("from"s).AsString();
+    std::string routeTo = request.AsDict().at("to"s).AsString();
+
+    auto optimalRoute = routeBuilder_.GetOptimalRoute(routeFrom, routeTo);
+    if (!optimalRoute.has_value()) {
+        outDict.insert({"error_message"s, json::Builder{}.Value("not found"s).Build()});
+    } else {
+        outDict.insert({"total_time"s, json::Builder{}.Value(optimalRoute.value().totalTime).Build()});
+        json::Array jsonArray;
+        for (auto &routeStep: optimalRoute.value().routeSteps) {
+            json::Dict jsonDict;
+            if (routeStep.isWait) {
+                jsonDict.insert({"type"s, json::Builder{}.Value("Wait"s).Build()});
+                jsonDict.insert({"stop_name"s, json::Builder{}.Value(std::string(routeStep.stop->name_)).Build()});
+                jsonDict.insert({"time"s, json::Builder{}.Value(routeStep.time).Build()});
+            } else {
+                jsonDict.insert({"type"s, json::Builder{}.Value("Bus"s).Build()});
+                jsonDict.insert({"bus"s, json::Builder{}.Value(std::string(routeStep.bus->name_)).Build()});
+                jsonDict.insert({"span_count"s, json::Builder{}.Value(routeStep.spanCount).Build()});
+                jsonDict.insert({"time"s, json::Builder{}.Value(routeStep.time).Build()});
+            }
+            jsonArray.push_back(json::Builder{}.Value(jsonDict).Build());
+        }
+        outDict.insert({"items"s, json::Builder{}.Value(jsonArray).Build()});
+    }
+}
+
 json::Document RequestHandler::ExecuteQuery(const json::Document& doc) const {
     using namespace std::literals;
     auto &node = doc.GetRoot();
@@ -177,29 +235,18 @@ json::Document RequestHandler::ExecuteQuery(const json::Document& doc) const {
         json::Dict dict = json::Builder{}.StartDict().Key("request_id"s).Value(id).EndDict().Build().AsDict();
         try {
             if (request.AsDict().at("type"s).AsString() == "Stop"s) {
-                std::string stopName = request.AsDict().at("name"s).AsString();
-                json::Array buses;
-                for (const auto &bus: db_.GetStopInfo(stopName)) {
-                    buses.push_back(json::Builder{}.Value(std::string(bus)).Build());
-                }
-                dict.insert({"buses"s, buses});
+                ExecuteStopQuery(dict, request);
             } else if (request.AsDict().at("type"s).AsString() == "Bus"s) {
-                std::string busName = request.AsDict().at("name"s).AsString();
-                auto busInfo = db_.GetBusInfo(busName);
-
-                dict.insert({"curvature"s, json::Builder{}.Value(busInfo.curvature_).Build()});
-                dict.insert({"route_length"s, json::Builder{}.Value(busInfo.routeLength_).Build()});
-                dict.insert({"stop_count"s, json::Builder{}.Value((int) busInfo.stopsAmount_).Build()});
-                dict.insert({"unique_stop_count"s, json::Builder{}.Value((int) busInfo.uniqueStopsAmount_).Build()});
+                ExecuteBusQuery(dict, request);
             } else if (request.AsDict().at("type"s).AsString() == "Map"s) {
-                std::ostringstream buf;
-                svg::Document doc;
-                RenderMap(buf);
-                dict.insert({"map"s, json::Builder{}.Value(buf.str()).Build()});
+                ExecuteMapQuery(dict);
+            }  else if (request.AsDict().at("type"s).AsString() == "Route"s) {
+                ExecuteRouteQuery(dict, request);
             } else {
                 assert(request.AsDict().at("type"s).AsString() == "Bus"s ||
                        request.AsDict().at("type"s).AsString() == "Stop"s ||
-                       request.AsDict().at("type"s).AsString() == "Map"s);
+                       request.AsDict().at("type"s).AsString() == "Map"s ||
+                       request.AsDict().at("type"s).AsString() == "Route"s);
             }
         }
         catch (...) {

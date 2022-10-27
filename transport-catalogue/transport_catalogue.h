@@ -11,8 +11,10 @@
 #include <functional>
 #include <cassert>
 #include <sstream>
-
+#include <optional>
+#include "router.h"
 #include "domain.h"
+#include <iostream>
 
 namespace transport_catalogue {
 
@@ -24,7 +26,6 @@ namespace transport_catalogue {
         void AddStop(const Stop& stop);
         void AddBus(const Bus& bus);
         void SetStopsDistance(const Stop* stopFrom, const Stop* stopTo, int distance);
-
         const Bus& GetBus(const std::string& busName) const;
         const Stop& GetStop(const std::string& stopName) const;
         BusInfo GetBusInfo(const std::string& busName) const;
@@ -34,6 +35,10 @@ namespace transport_catalogue {
 
         double ComputeRouteDistance(const Bus& bus) const;
         double ComputeRealRouteDistance(const Bus& bus) const;
+        double ComputeRealStopToStopDistance(const Bus& bus, size_t indexFrom, size_t indexTo) const;
+
+        template<typename InputIt>
+        double ComputeRealRouteDistance(InputIt from, InputIt to) const;
 
 
     private:
@@ -46,6 +51,7 @@ namespace transport_catalogue {
             }
         };
 
+
         std::deque<Stop> stops_;
         std::unordered_map<std::string_view, const Stop&, std::hash<std::string_view>> stopByName_;
 
@@ -55,7 +61,6 @@ namespace transport_catalogue {
         std::unordered_map<std::string_view, std::set<std::string_view>, std::hash<std::string_view>> busesByStopName;
 
         std::unordered_map<std::pair<const Stop*, const Stop*>, int, PairOfPointerHasher> stopDistances_;
-
     };
 
     namespace tests {

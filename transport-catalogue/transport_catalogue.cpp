@@ -6,7 +6,6 @@ using transport_catalogue::Bus;
 using transport_catalogue::Stop;
 using transport_catalogue::BusInfo;
 
-
 void TransportCatalogue::AddStop(const Stop& stop) {
     Stop& ref = stops_.emplace_back(stop);
     stopByName_.insert({ref.name_, ref});
@@ -58,12 +57,10 @@ double TransportCatalogue::ComputeRouteDistance(const Bus& bus) const {
     }
     return distance;
 }
+
 double TransportCatalogue::ComputeRealRouteDistance(const Bus& bus) const {
     double distance = 0;
     for(size_t i = 0; i + 1 < bus.route_.size(); ++i) {
-        if(stopDistances_.count({bus.route_[i], bus.route_[i]})) {
-            distance += stopDistances_.at({bus.route_[i], bus.route_[i]});
-        }
         if(stopDistances_.count({bus.route_[i], bus.route_[i + 1]})) {
             distance += stopDistances_.at({bus.route_[i], bus.route_[i + 1]});
         } else if(stopDistances_.count({bus.route_[i + 1], bus.route_[i]})) {
@@ -71,6 +68,21 @@ double TransportCatalogue::ComputeRealRouteDistance(const Bus& bus) const {
         } else {
             distance += ComputeDistance(bus.route_[i]->coordinates_, bus.route_[i + 1]->coordinates_);
         }
+    }
+    return distance;
+}
+
+double TransportCatalogue::ComputeRealStopToStopDistance(const Bus& bus, size_t indexFrom, size_t indexTo) const {
+    double distance = 0;
+    while(indexFrom != indexTo) {
+        if(stopDistances_.count({bus.route_[indexFrom], bus.route_[indexFrom + 1]})) {
+            distance += stopDistances_.at({bus.route_[indexFrom], bus.route_[indexFrom + 1]});
+        } else if(stopDistances_.count({bus.route_[indexFrom + 1], bus.route_[indexFrom]})) {
+            distance += stopDistances_.at({bus.route_[indexFrom + 1], bus.route_[indexFrom]});
+        } else {
+            distance += ComputeDistance(bus.route_[indexFrom]->coordinates_, bus.route_[indexFrom + 1]->coordinates_);
+        }
+        ++indexFrom;
     }
     return distance;
 }

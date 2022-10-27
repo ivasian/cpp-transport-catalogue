@@ -14,6 +14,10 @@ namespace transport_catalogue{
         Stop() = default;
         Stop(const std::string& name, const geo::Coordinates& coordinates);
         bool operator==(const Stop& stop) const;
+        operator uintptr_t() const {
+            uintptr_t a = reinterpret_cast<uintptr_t>(this);
+            return a;
+        }
     };
 
     struct Bus {

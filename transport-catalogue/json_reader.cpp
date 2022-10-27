@@ -3,8 +3,13 @@
 
 
 TransportCatalogue JsonReader::BuildCatalogueBase(const Document& doc){
-    using namespace std::literals;
     TransportCatalogue catalogue;
+    LoadBaseRequests(catalogue, doc);
+    return catalogue;
+}
+
+void JsonReader::LoadBaseRequests(TransportCatalogue& outCatalogue, const Document& doc) {
+    using namespace std::literals;
     auto& node = doc.GetRoot();
     auto& baseRequests = node.AsDict().at("base_requests"s).AsArray();
     std::vector<StopQuery> stops;
@@ -28,8 +33,15 @@ TransportCatalogue JsonReader::BuildCatalogueBase(const Document& doc){
             assert(elem.AsDict().at("type"s) == "Stop"s || elem.AsDict().at("type"s) == "Bus"s);
         }
     }
-    LoadDataInCatalogue(catalogue, stops, buses);
-    return catalogue;
+    LoadDataInCatalogue(outCatalogue, stops, buses);
+}
+
+RoutingSetting JsonReader::LoadRoutingSettings(const Document& doc) {
+    using namespace std::literals;
+    auto& node = doc.GetRoot();
+    auto& routingSettings = node.AsDict().at("routing_settings"s).AsDict();
+    return {routingSettings.at("bus_wait_time"s).AsDouble(),
+                                     routingSettings.at("bus_velocity"s).AsDouble()};
 }
 
 RenderSettings JsonReader::GetMapRenderSettings(const Document& doc){
