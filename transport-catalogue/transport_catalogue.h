@@ -52,6 +52,7 @@ namespace transport_catalogue {
         };
 
 
+
         std::deque<Stop> stops_;
         std::unordered_map<std::string_view, const Stop&, std::hash<std::string_view>> stopByName_;
 

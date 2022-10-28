@@ -1,37 +1,48 @@
 #include "transport_router.h"
 
+
+
 namespace transport_router {
+
+    const double TO_DISTANCE_IN_MINUTE = 60/1000;
+
     TransportRouter::TransportRouter(const TransportCatalogue& db, RoutingSetting routingSetting) :
             db_(db), routingSetting_(routingSetting), router_(BuildGraph()){
     }
 
     Graph& TransportRouter::BuildGraph() {
-        auto& stops = db_.GetAllStops();
-        graph_ = Graph(stops.size() * 2);
-        size_t vertexId = 0;
-        for(auto& stop : stops) {
-            size_t edgeId = graph_.AddEdge({vertexId, vertexId + 1, routingSetting_.busWaitTime});
-            edgeIds_[edgeId] = {true, routingSetting_.busWaitTime, &stop, nullptr,-1};
-            vertexIds_[&stop] = vertexId;
-            vertexId += 2;
-        }
-
-        auto& buses = db_.GetAllBuses();
-        for(auto& [name, bus] : buses) {
-            for(size_t i = 0; i < bus.route_.size(); ++i) {
-                size_t vertexId1 = vertexIds_[bus.route_[i]];
-                for(size_t j = i + 1; j < bus.route_.size(); ++j) {
-                    auto distance = db_.ComputeRealStopToStopDistance(bus, i, j) / 1000 / (routingSetting_.busVelocity / 60);
-                    size_t vertexId2 = vertexIds_[bus.route_[j]];
-                    size_t edgeId = graph_.AddEdge({vertexId1 + 1, vertexId2, distance});
-                    edgeIds_[edgeId] = {false,distance,nullptr,&bus,(int)j - (int)i};
-                }
-            }
-        }
+        graph_ = Graph(db_.GetAllStops().size() * 2);
+        FillGraphWithStops(db_.GetAllStops());
+        FillGraphWithBuses(db_.GetAllBuses());
         return graph_;
     }
 
-    std::optional<RouteInfo> TransportRouter::GetOptimalRoute(std::string& routeFrom, std::string& routeTo) const {
+    void TransportRouter::FillGraphWithStops(const std::deque<Stop>& stops) {
+        size_t vertexId = 0;
+        for(const auto& stop : stops) {
+            size_t edgeId = graph_.AddEdge({vertexId, vertexId + 1, routingSetting_.busWaitTime});
+            edgeIds_[edgeId] = std::make_shared<OnWait>(routingSetting_.busWaitTime, &stop);
+            vertexIds_[&stop] = vertexId;
+            vertexId += 2;
+        }
+    }
+
+    void TransportRouter::FillGraphWithBuses(const BusesContaner& buses) {
+        for(const auto& [name, bus] : buses) {
+            for(size_t i = 0; i < bus.route_.size(); ++i) {
+                size_t vertexId1 = vertexIds_[bus.route_[i]];
+                for(size_t j = i + 1; j < bus.route_.size(); ++j) {
+                    auto edgeDistance = ComputeTimeInMinute(db_.ComputeRealStopToStopDistance(bus, i, j), routingSetting_.busVelocity);
+                    size_t vertexId2 = vertexIds_[bus.route_[j]];
+                    size_t edgeId = graph_.AddEdge({vertexId1 + 1, vertexId2, edgeDistance});
+                    int spanCount = static_cast<int>(j) - static_cast<int>(i);
+                    edgeIds_[edgeId] = std::make_shared<OnBus>(edgeDistance, &bus, spanCount );
+                }
+            }
+        }
+    }
+
+    std::optional<RouteInfo> TransportRouter::GetOptimalRoute(const std::string& routeFrom, const std::string& routeTo) const {
         size_t idFrom = vertexIds_.at(&db_.GetStop(routeFrom));
         size_t idTo = vertexIds_.at(&db_.GetStop(routeTo));
         auto graphRouteInfo = router_.BuildRoute(idFrom, idTo);
@@ -48,5 +59,37 @@ namespace transport_router {
 
     }
 
+    double TransportRouter::ComputeTimeInMinute (double sInMeters, double vInKmh) const {
+        double sInKm = sInMeters / 1000;
+        double tInH = sInKm / vInKmh;
+        return tInH * 60;
+    }
+
+
+
+        Activity::Activity(double time) : time_(time) {
+        }
+        void Activity::WriteInJsonDict(json::Dict& dict) {
+            using namespace std::literals;
+            dict.insert({"time"s, json::Builder{}.Value(time_).Build()});
+        }
+
+        OnWait::OnWait(double time, const Stop* stop) : Activity(time), stop_(stop){
+        }
+        void OnWait::WriteInJsonDict(json::Dict& dict) {
+            using namespace std::literals;
+
+            dict.insert({"type"s, json::Builder{}.Value("Wait"s).Build()});
+            dict.insert({"stop_name"s, json::Builder{}.Value(std::string(stop_->name_)).Build()});
+        }
+
+        OnBus::OnBus(double time, const Bus* bus, int spanCount) : Activity(time), bus_(bus), spanCount_(spanCount){
+        }
+        void OnBus::WriteInJsonDict(json::Dict& dict) {
+            using namespace std::literals;
+            dict.insert({"type"s, json::Builder{}.Value("Bus"s).Build()});
+            dict.insert({"bus"s, json::Builder{}.Value(std::string(bus_->name_)).Build()});
+            dict.insert({"span_count"s, json::Builder{}.Value(spanCount_).Build()});
+        }
 }
 

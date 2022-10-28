@@ -209,16 +209,7 @@ void RequestHandler::ExecuteRouteQuery(json::Dict& outDict, const json::Node& re
         json::Array jsonArray;
         for (auto &routeStep: optimalRoute.value().routeSteps) {
             json::Dict jsonDict;
-            if (routeStep.isWait) {
-                jsonDict.insert({"type"s, json::Builder{}.Value("Wait"s).Build()});
-                jsonDict.insert({"stop_name"s, json::Builder{}.Value(std::string(routeStep.stop->name_)).Build()});
-                jsonDict.insert({"time"s, json::Builder{}.Value(routeStep.time).Build()});
-            } else {
-                jsonDict.insert({"type"s, json::Builder{}.Value("Bus"s).Build()});
-                jsonDict.insert({"bus"s, json::Builder{}.Value(std::string(routeStep.bus->name_)).Build()});
-                jsonDict.insert({"span_count"s, json::Builder{}.Value(routeStep.spanCount).Build()});
-                jsonDict.insert({"time"s, json::Builder{}.Value(routeStep.time).Build()});
-            }
+            routeStep->WriteInJsonDict(jsonDict);
             jsonArray.push_back(json::Builder{}.Value(jsonDict).Build());
         }
         outDict.insert({"items"s, json::Builder{}.Value(jsonArray).Build()});
