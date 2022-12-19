@@ -18,6 +18,15 @@
 
 namespace transport_catalogue {
 
+
+    class PairOfPointerHasher {
+    public:
+        size_t operator()(const std::pair<const Stop*, const Stop*>& pointers) const {
+            return reinterpret_cast<uintptr_t>(pointers.first) +
+                   reinterpret_cast<uintptr_t>(pointers.second) * 67;
+        }
+    };
+
     class TransportCatalogue {
 
     public:
@@ -29,6 +38,7 @@ namespace transport_catalogue {
         const Bus& GetBus(const std::string& busName) const;
         const Stop& GetStop(const std::string& stopName) const;
         BusInfo GetBusInfo(const std::string& busName) const;
+        const std::unordered_map<std::pair<const Stop*, const Stop*>, int, transport_catalogue::PairOfPointerHasher>& GetStopDistances() const;
         const std::set<std::string_view> GetStopInfo(const std::string& stopName) const;
         const std::unordered_map<std::string_view, const Bus&, std::hash<std::string_view>>& GetAllBuses() const;
         const std::deque<Stop>& GetAllStops() const;
@@ -43,15 +53,6 @@ namespace transport_catalogue {
 
     private:
 
-        class PairOfPointerHasher {
-        public:
-            size_t operator()(const std::pair<const Stop*, const Stop*>& pointers) const {
-                return reinterpret_cast<uintptr_t>(pointers.first) +
-                       reinterpret_cast<uintptr_t>(pointers.second) * 67;
-            }
-        };
-
-
 
         std::deque<Stop> stops_;
         std::unordered_map<std::string_view, const Stop&, std::hash<std::string_view>> stopByName_;
@@ -61,7 +62,7 @@ namespace transport_catalogue {
 
         std::unordered_map<std::string_view, std::set<std::string_view>, std::hash<std::string_view>> busesByStopName;
 
-        std::unordered_map<std::pair<const Stop*, const Stop*>, int, PairOfPointerHasher> stopDistances_;
+        std::unordered_map<std::pair<const Stop*, const Stop*>, int, transport_catalogue::PairOfPointerHasher> stopDistances_;
     };
 
     namespace tests {

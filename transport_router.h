@@ -18,6 +18,10 @@ namespace transport_router {
         double busVelocity;
     };
 
+    struct SerializationSetting {
+        std::string filename;
+    };
+
     namespace passenger_activity {
 
         struct Activity {
@@ -61,16 +65,20 @@ namespace transport_router {
 
     public:
         TransportRouter(const TransportCatalogue& db, RoutingSetting routingSetting);
-
+        TransportRouter(const TransportCatalogue& db, RoutingSetting routingSetting, Graph& graph);
         Graph& BuildGraph();
 
         std::optional<RouteInfo> GetOptimalRoute(const std::string& routeFrom, const std::string& routeTo) const;
 
+        const std::map<const Stop*, size_t>& GetVertexIds() const;
+        const std::map<int, std::shared_ptr<Activity>>& GetEdgeIds() const;
+        const Graph& GetGraph() const;
+
     private:
         double ComputeTimeInMinute (double sInMeters, double vInKmh) const;
 
-        void FillGraphWithStops(const std::deque<Stop>& stops);
-        void FillGraphWithBuses(const BusesContaner& buses);
+        void FillGraphWithStops(const std::deque<Stop>& stops, bool isGraphDeserialized = false);
+        void FillGraphWithBuses(const BusesContaner& buses, bool isGraphDeserialized = false);
 
         std::map<int, std::shared_ptr<Activity>> edgeIds_;
         std::map<const Stop*, size_t> vertexIds_;

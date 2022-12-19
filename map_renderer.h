@@ -71,6 +71,7 @@ namespace renderer {
 
         SphereProjector GetSphereProjector(const std::vector<Coordinates>& allPoint) const;
         svg::Color GetStrokeColorByOrder(int number) const;
+        const RenderSettings& GetRenderSettings() const;
 
         void SetLineProperties(Polyline& line, int number) const;
         void SetBusTextCommonProperties(Text& text,const std::string& data, Point position) const;

@@ -35,6 +35,10 @@ namespace renderer {
         return renderSettings_.color_palette_[index];
     }
 
+    const RenderSettings& MapRenderer::GetRenderSettings() const {
+        return renderSettings_;
+    }
+
     void MapRenderer::SetLineProperties(Polyline &line, int number) const {
         using namespace std::literals;
         line.SetStrokeColor(GetStrokeColorByOrder(number));

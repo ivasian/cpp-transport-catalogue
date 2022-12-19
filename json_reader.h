@@ -16,6 +16,7 @@ using json::Document;
 using json::Node;
 using StopsDistancesArray = std::vector<std::pair<std::string, int>>;
 using RoutingSetting = transport_router::RoutingSetting;
+using SerializationSetting = transport_router::SerializationSetting;
 
 class JsonReader {
 
@@ -23,6 +24,7 @@ public:
     TransportCatalogue BuildCatalogueBase(const Document& doc);
     RenderSettings GetMapRenderSettings(const Document& doc);
     RoutingSetting LoadRoutingSettings(const Document& doc);
+    SerializationSetting LoadSerializationSettings(const Document& doc);
 
 private:
     void LoadBaseRequests(TransportCatalogue& OutCatalogue, const Document& doc);

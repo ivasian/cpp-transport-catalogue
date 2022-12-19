@@ -37,6 +37,10 @@ BusInfo TransportCatalogue::GetBusInfo(const std::string& busName) const{
             bus.uniqueStops.size(), real_distance, real_distance/geo_distance};
 }
 
+const std::unordered_map<std::pair<const Stop*, const Stop*>, int, transport_catalogue::PairOfPointerHasher>& TransportCatalogue::GetStopDistances() const {
+    return stopDistances_;
+}
+
 const std::unordered_map<std::string_view, const Bus&, std::hash<std::string_view>>&
 TransportCatalogue::GetAllBuses() const {
     return busByName_;

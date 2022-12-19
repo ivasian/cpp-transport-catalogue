@@ -44,6 +44,15 @@ RoutingSetting JsonReader::LoadRoutingSettings(const Document& doc) {
                                      routingSettings.at("bus_velocity"s).AsDouble()};
 }
 
+
+SerializationSetting JsonReader::LoadSerializationSettings(const Document& doc) {
+    using namespace std::literals;
+    auto& node = doc.GetRoot();
+    auto& serializationSettings = node.AsDict().at("serialization_settings"s).AsDict();
+    return {serializationSettings.at("file"s).AsString()};
+}
+
+
 RenderSettings JsonReader::GetMapRenderSettings(const Document& doc){
     using namespace std::literals;
     auto &node = doc.GetRoot();

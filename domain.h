@@ -57,6 +57,5 @@ namespace transport_catalogue{
         std::string name_;
         std::vector<std::string> stopNames_;
         bool isRoundtrip_;
-
     };
 }
