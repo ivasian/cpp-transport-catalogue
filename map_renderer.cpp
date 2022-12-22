@@ -10,7 +10,7 @@ namespace renderer {
         };
     }
 
-    MapRenderer::MapRenderer(RenderSettings &renderSettings) :
+    MapRenderer::MapRenderer(const RenderSettings& renderSettings) :
             renderSettings_(renderSettings) {
     }
 

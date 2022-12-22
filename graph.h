@@ -51,7 +51,7 @@ namespace graph {
 
     template <typename Weight>
     DirectedWeightedGraph<Weight>::DirectedWeightedGraph(std::vector<Edge<Weight>> edges, std::vector<IncidenceList> incidence_lists)
-        : edges_(std::move(edges)), incidence_lists_(std::move(incidence_lists)) {
+            : edges_(std::move(edges)), incidence_lists_(std::move(incidence_lists)) {
     }
 
     template <typename Weight>

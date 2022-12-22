@@ -9,34 +9,29 @@
 
 namespace serialization {
 
-    class TransportCatalogue {
-    public:
-        TransportCatalogue(std::string filename) : filename_(filename) {
-        }
+        void Serialize(std::ostream& output,
+                       const transport_catalogue::TransportCatalogue& catalogue,
+                       const renderer::MapRenderer& mapRenderer,
+                       const transport_router::TransportRouter& transportRouter);
+        void Deserialize(std::istream& input,
+                         transport_catalogue::TransportCatalogue& outCatalogue,
+                         renderer::MapRenderer& outMapRenderer,
+                         transport_router::TransportRouter& transportRouter);
 
-        void Serialize(const transport_catalogue::TransportCatalogue& catalogue,
-                       const renderer::RenderSettings& settings,
-                       const transport_router::RoutingSetting& outRoutingSettings,
-                       const transport_router::Graph & graph);
-        void Deserialize(transport_catalogue::TransportCatalogue& InCatalogue,
-                         renderer::RenderSettings& InRenderSettings,
-                         transport_router::RoutingSetting& InRoutingSettings,
-                         transport_router::Graph& graph);
+        [[nodiscard]] serialization::RenderSettings Convert(const renderer::RenderSettings& settings);
+        [[nodiscard]] serialization::Graph Convert(const transport_router::Graph& graph);
+        [[nodiscard]] serialization::TransportCatalogue Convert(const transport_catalogue::TransportCatalogue& catalogue);
+        [[nodiscard]] serialization::RoutingSettings Convert(const transport_router::RoutingSetting& settings);
+        [[nodiscard]] serialization::Transport_router Convert(const transport_router::TransportRouter& router);
+        [[nodiscard]] serialization::Map_renderer Convert(const renderer::MapRenderer& map);
 
-    private:
 
-        void Convert(const renderer::RenderSettings& settings, transportCatalogueSerialize::RenderSettings& OutSettings);
-        void Convert(const transport_router::Graph& graph, transportCatalogueSerialize::Graph& outGraph);
-        void Convert(const transport_catalogue::TransportCatalogue& catalogue, transportCatalogueSerialize::TransportCatalogue& OutCatalogue);
-        void Convert(const transport_router::RoutingSetting& settings, transportCatalogueSerialize::RoutingSettings& outSettings);
-
-        void Convert(const transportCatalogueSerialize::RoutingSettings& settings, transport_router::RoutingSetting& outSettings);
-        void Convert(const transportCatalogueSerialize::TransportCatalogue& catalogue, transport_catalogue::TransportCatalogue& OutCatalogue);
-        void Convert(const transportCatalogueSerialize::Graph& graph, transport_router::Graph& OutGraph);
-        void Convert(const transportCatalogueSerialize::RenderSettings& settings, renderer::RenderSettings& OutSettings);
-
-        std::string filename_;
-    };
+        [[nodiscard]] transport_router::RoutingSetting Convert(const serialization::RoutingSettings& settings);
+        [[nodiscard]] transport_catalogue::TransportCatalogue Convert(const serialization::TransportCatalogue& catalogue);
+        [[nodiscard]] transport_router::Graph Convert(const serialization::Graph& graph);
+        [[nodiscard]] renderer::RenderSettings Convert(const serialization::RenderSettings& settings);
+        [[nodiscard]] transport_router::TransportRouter Convert(const serialization::Transport_router& router, const transport_catalogue::TransportCatalogue& catalogue);
+        [[nodiscard]] renderer::MapRenderer Convert(const serialization::Map_renderer& map);
 
 
 }

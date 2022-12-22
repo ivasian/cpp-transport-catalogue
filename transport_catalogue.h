@@ -36,6 +36,7 @@ namespace transport_catalogue {
         void AddBus(const Bus& bus);
         void SetStopsDistance(const Stop* stopFrom, const Stop* stopTo, int distance);
         const Bus& GetBus(const std::string& busName) const;
+        const std::deque<Bus>& GetBuses() const;
         const Stop& GetStop(const std::string& stopName) const;
         BusInfo GetBusInfo(const std::string& busName) const;
         const std::unordered_map<std::pair<const Stop*, const Stop*>, int, transport_catalogue::PairOfPointerHasher>& GetStopDistances() const;

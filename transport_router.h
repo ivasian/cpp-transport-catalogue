@@ -64,28 +64,29 @@ namespace transport_router {
 
 
     public:
-        TransportRouter(const TransportCatalogue& db, RoutingSetting routingSetting);
-        TransportRouter(const TransportCatalogue& db, RoutingSetting routingSetting, Graph& graph);
-        Graph& BuildGraph();
+        TransportRouter(const TransportCatalogue& db, const RoutingSetting& routingSetting, const Graph& graph);
+        TransportRouter(const TransportCatalogue& db, const RoutingSetting& routingSetting);
+        TransportRouter() = default;
 
-        std::optional<RouteInfo> GetOptimalRoute(const std::string& routeFrom, const std::string& routeTo) const;
+        [[nodiscard]] std::optional<RouteInfo> GetOptimalRoute(const std::string& routeFrom, const std::string& routeTo) const;
 
-        const std::map<const Stop*, size_t>& GetVertexIds() const;
-        const std::map<int, std::shared_ptr<Activity>>& GetEdgeIds() const;
-        const Graph& GetGraph() const;
+        [[nodiscard]] const Graph& GetGraph() const;
+        [[nodiscard]] const RoutingSetting& GetRoutingSetting() const;
 
     private:
-        double ComputeTimeInMinute (double sInMeters, double vInKmh) const;
+        [[nodiscard]] double ComputeTimeInMinute (double sInMeters, double vInKmh) const;
 
         void FillGraphWithStops(const std::deque<Stop>& stops, bool isGraphDeserialized = false);
         void FillGraphWithBuses(const BusesContaner& buses, bool isGraphDeserialized = false);
 
         std::map<int, std::shared_ptr<Activity>> edgeIds_;
         std::map<const Stop*, size_t> vertexIds_;
-        Graph graph_;
-        const TransportCatalogue& db_;
-        const RoutingSetting routingSetting_;
-        const Router router_;
+
+        std::optional<Graph> graph_;
+        std::optional<RoutingSetting> routingSetting_;
+        std::unique_ptr<Router> router_;
+
+        std::optional<const TransportCatalogue*> db_;
     };
 
 }

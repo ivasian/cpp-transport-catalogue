@@ -29,7 +29,6 @@ namespace graph {
         };
 
         std::optional<RouteInfo> BuildRoute(VertexId from, VertexId to) const;
-
     private:
         struct RouteInternalData {
             Weight weight;
@@ -77,7 +76,7 @@ namespace graph {
         }
 
         static constexpr Weight ZERO_WEIGHT{};
-        const Graph& graph_;
+        Graph graph_;
         RoutesInternalData routes_internal_data_;
     };
 

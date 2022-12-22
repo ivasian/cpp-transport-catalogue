@@ -5,11 +5,11 @@ namespace svg {
     using namespace std::literals;
 
     RenderContext::RenderContext(std::ostream& out)
-    : out(out) {
+            : out(out) {
     }
 
     RenderContext::RenderContext(std::ostream& out, int indent_step, int indent)
-        : out(out) , indent_step(indent_step) , indent(indent) {
+            : out(out) , indent_step(indent_step) , indent(indent) {
     }
 
     RenderContext RenderContext::Indented() const {

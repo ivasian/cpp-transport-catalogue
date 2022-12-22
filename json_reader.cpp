@@ -41,7 +41,7 @@ RoutingSetting JsonReader::LoadRoutingSettings(const Document& doc) {
     auto& node = doc.GetRoot();
     auto& routingSettings = node.AsDict().at("routing_settings"s).AsDict();
     return {routingSettings.at("bus_wait_time"s).AsDouble(),
-                                     routingSettings.at("bus_velocity"s).AsDouble()};
+            routingSettings.at("bus_velocity"s).AsDouble()};
 }
 
 

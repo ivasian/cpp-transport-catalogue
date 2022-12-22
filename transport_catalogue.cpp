@@ -26,6 +26,11 @@ void TransportCatalogue::SetStopsDistance(const Stop* stopFrom, const Stop* stop
 const Bus& TransportCatalogue::GetBus(const std::string& busName) const {
     return busByName_.at(busName);
 }
+
+const std::deque<Bus>& TransportCatalogue::GetBuses() const {
+    return buses_;
+}
+
 const Stop& TransportCatalogue::GetStop(const std::string& stopName) const {
     return stopByName_.at(stopName);
 }

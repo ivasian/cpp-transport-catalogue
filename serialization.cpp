@@ -2,63 +2,55 @@
 
 namespace serialization {
 
+    void Serialize(std::ostream& output,
+                   const transport_catalogue::TransportCatalogue& catalogue,
+                   const renderer::MapRenderer& mapRenderer,
+                   const transport_router::TransportRouter& router) {
 
-    void TransportCatalogue::Serialize(const transport_catalogue::TransportCatalogue& catalogue,
-                                       const renderer::RenderSettings& renderSettings,
-                                       const transport_router::RoutingSetting& routingSettings,
-                                       const transport_router::Graph & graph) {
-        std::ofstream output(filename_, std::ios::binary);
-        transportCatalogueSerialize::Base base;
-        transportCatalogueSerialize::TransportCatalogue outCatalogue;
-        transportCatalogueSerialize::RenderSettings outRenderSettings;
-        transportCatalogueSerialize::RoutingSettings outRoutingSettings;
-        transportCatalogueSerialize::Graph outGraph;
-        Convert(catalogue, outCatalogue);
-        Convert(renderSettings, outRenderSettings);
-        Convert(routingSettings, outRoutingSettings);
-        Convert(graph, outGraph);
-        *base.mutable_graph() = outGraph;
-        *base.mutable_catalogue() = outCatalogue;
-        *base.mutable_rendersettings() = outRenderSettings;
-        *base.mutable_routingsettings() = outRoutingSettings;
+        serialization::Base base;
+        *base.mutable_router() = Convert(router);
+        *base.mutable_catalogue() = Convert(catalogue);
+        *base.mutable_renderer() = Convert(mapRenderer);
         base.SerializeToOstream(&output);
+
     }
 
-    void TransportCatalogue::Deserialize(transport_catalogue::TransportCatalogue& outCatalogue,
-                                         renderer::RenderSettings& outRenderSettings,
-                                         transport_router::RoutingSetting& outRoutingSettings,
-                                         transport_router::Graph& outGraph) {
-        std::ifstream input(filename_, std::ios::binary);
-        transportCatalogueSerialize::Base base;
+    void Deserialize(std::istream& input,
+                     transport_catalogue::TransportCatalogue& outCatalogue,
+                     renderer::MapRenderer& outMapRenderer,
+                     transport_router::TransportRouter& outRouter) {
+
+        serialization::Base base;
         base.ParseFromIstream(&input);
-        Convert(*base.mutable_catalogue(), outCatalogue);
-        Convert(*base.mutable_rendersettings(), outRenderSettings);
-        Convert(*base.mutable_routingsettings(), outRoutingSettings);
-        Convert(*base.mutable_graph(), outGraph);
+        outCatalogue = Convert(base.catalogue());
+        outMapRenderer = Convert(base.renderer());
+        outRouter = Convert(base.router(), outCatalogue);
     }
 
-    void TransportCatalogue::Convert(const transport_router::Graph& graph,
-                                     transportCatalogueSerialize::Graph& outGraph) {
+    serialization::Graph Convert(const transport_router::Graph& graph) {
+        serialization::Graph outGraph;
         const auto& edges = graph.GetEdges();
         for(const auto& edge : edges) {
-            transportCatalogueSerialize::Edge toSerialEdge;
+            serialization::Edge toSerialEdge;
             toSerialEdge.set_from(edge.from);
             toSerialEdge.set_to(edge.to);
             toSerialEdge.set_weight(edge.weight);
-            *outGraph.add_edges() = toSerialEdge;
+            outGraph.mutable_edges()->Add(std::move(toSerialEdge));
         }
 
         const auto& incidenceLists = graph.GetIncidenceLists();
         for(const auto& incidenceList : incidenceLists) {
-            auto toSerialIncidenceList = outGraph.add_incidence_lists();
+            serialization::IncidenceList toSerialIncidenceList;
             for(const auto& edgeId : incidenceList) {
-                toSerialIncidenceList->add_list(edgeId);
+                toSerialIncidenceList.add_list(edgeId);
             }
+            outGraph.mutable_incidence_lists()->Add(std::move(toSerialIncidenceList));
         }
+        return outGraph;
     }
 
-    void TransportCatalogue::Convert(const transportCatalogueSerialize::Graph& graph,
-                                     transport_router::Graph& OutGraph) {
+    transport_router::Graph Convert(const serialization::Graph& graph) {
+        transport_router::Graph outGraph;
         std::vector<graph::Edge<double>> edges;
         for(size_t i = 0; i < graph.edges_size(); ++i) {
             edges.push_back({graph.edges(i).from(), graph.edges(i).to(), graph.edges(i).weight()});
@@ -66,20 +58,21 @@ namespace serialization {
         std::vector<std::vector<size_t>> incidenceLists;
         for(size_t i = 0; i < graph.incidence_lists_size(); ++i) {
             const auto& incidenceList = graph.incidence_lists(i);
-            incidenceLists.push_back({});
+            incidenceLists.emplace_back();
             for(size_t j = 0; j < incidenceList.list_size(); ++j) {
                 incidenceLists[i].push_back(incidenceList.list(j));
             }
         }
-        OutGraph.SetGraph(edges, incidenceLists);
+        outGraph.SetGraph(edges, incidenceLists);
+        return outGraph;
     }
 
-    void TransportCatalogue::Convert(const transport_catalogue::TransportCatalogue& catalogue,
-                                     transportCatalogueSerialize::TransportCatalogue& outCatalogue) {
+    serialization::TransportCatalogue Convert(const transport_catalogue::TransportCatalogue& catalogue) {
+        serialization::TransportCatalogue outCatalogue;
         const auto& stops = catalogue.GetAllStops();
         std::unordered_map<const transport_catalogue::Stop*, size_t> stopToId;
         for(size_t i = 0; i < stops.size(); ++i) {
-            transportCatalogueSerialize::Stop tempStop;
+            serialization::Stop tempStop;
             tempStop.set_name(stops[i].name_);
             tempStop.mutable_coordinates()->set_lat(stops[i].coordinates_.lat);
             tempStop.mutable_coordinates()->set_lng(stops[i].coordinates_.lng);
@@ -88,9 +81,9 @@ namespace serialization {
             stopToId.emplace(&stops[i], i);
         }
 
-        const auto& buses = catalogue.GetAllBuses();
-        for(const auto&[name, bus] : buses) {
-            transportCatalogueSerialize::Bus tempBus;
+        const auto& buses = catalogue.GetBuses();
+        for(const auto& bus : buses) {
+            serialization::Bus tempBus;
             tempBus.set_name(bus.name_);
             for(const auto* stopPtr : bus.route_) {
                 tempBus.add_route(stopToId.at(stopPtr));
@@ -102,15 +95,18 @@ namespace serialization {
 
         const auto& stopDistances = catalogue.GetStopDistances();
         for(const auto& [stopPair, distance ] : stopDistances) {
-            transportCatalogueSerialize::StopDistance tempStopDistance;
+            serialization::StopDistance tempStopDistance;
             tempStopDistance.set_stop1(stopToId.at(stopPair.first));
             tempStopDistance.set_stop2(stopToId.at(stopPair.second));
             tempStopDistance.set_distance(distance);
             outCatalogue.add_stopdistances();
             *(outCatalogue.mutable_stopdistances(outCatalogue.stopdistances_size() -1 )) = tempStopDistance;
         }
+        return outCatalogue;
     }
-    void TransportCatalogue::Convert(const transportCatalogueSerialize::TransportCatalogue& catalogue, transport_catalogue::TransportCatalogue& outCatalogue) {
+
+    transport_catalogue::TransportCatalogue Convert(const serialization::TransportCatalogue& catalogue) {
+        transport_catalogue::TransportCatalogue outCatalogue;
         for(size_t i = 0; i < catalogue.stops_size(); ++i) {
             const auto deserStop = catalogue.stops(i);
             outCatalogue.AddStop({deserStop.name(),
@@ -135,9 +131,11 @@ namespace serialization {
                                        &outCatalogue.GetStop(stopName2),
                                        stopDistance.distance());
         }
+        return outCatalogue;
     }
 
-    void TransportCatalogue::Convert(const renderer::RenderSettings& settings, transportCatalogueSerialize::RenderSettings& outSettings) {
+    serialization::RenderSettings Convert(const renderer::RenderSettings& settings) {
+        serialization::RenderSettings outSettings;
         outSettings.set_width(settings.width_);
         outSettings.set_height(settings.height_);
         outSettings.set_padding(settings.padding_);
@@ -154,19 +152,22 @@ namespace serialization {
         for(const auto& color : settings.color_palette_) {
             outSettings.add_color_palette(color);
         }
+        return outSettings;
     }
 
-    void TransportCatalogue::Convert(const transport_router::RoutingSetting& settings, transportCatalogueSerialize::RoutingSettings& outSettings) {
+    serialization::RoutingSettings Convert(const transport_router::RoutingSetting& settings) {
+        serialization::RoutingSettings outSettings;
         outSettings.set_buswaittime(settings.busWaitTime);
         outSettings.set_busvelocity(settings.busVelocity);
+        return outSettings;
     }
 
-    void TransportCatalogue::Convert(const transportCatalogueSerialize::RoutingSettings& settings, transport_router::RoutingSetting& outSettings) {
-        outSettings.busWaitTime = settings.buswaittime();
-        outSettings.busVelocity = settings.busvelocity();
+    transport_router::RoutingSetting Convert(const serialization::RoutingSettings& settings) {
+        return {settings.buswaittime(), settings.busvelocity()};
     }
 
-    void TransportCatalogue::Convert(const transportCatalogueSerialize::RenderSettings& settings, renderer::RenderSettings& outSettings) {
+    renderer::RenderSettings Convert(const serialization::RenderSettings& settings) {
+        renderer::RenderSettings outSettings;
         outSettings.width_ = settings.width();
         outSettings.height_ = settings.height();
         outSettings.padding_ = settings.padding();
@@ -181,5 +182,31 @@ namespace serialization {
         for(size_t i = 0; i < settings.color_palette_size(); ++i) {
             outSettings.color_palette_.push_back(settings.color_palette(i));
         }
+        return outSettings;
     }
+
+
+    renderer::MapRenderer Convert(const serialization::Map_renderer& map) {
+        return {Convert(map.settings())};
+    }
+
+    serialization::Map_renderer Convert(const renderer::MapRenderer& map) {
+        serialization::RenderSettings outRenderSetting = Convert(map.GetRenderSettings());
+        serialization::Map_renderer mapRenderer;
+        *mapRenderer.mutable_settings() = outRenderSetting;
+        return mapRenderer;
+    }
+
+
+    serialization::Transport_router Convert(const transport_router::TransportRouter& router) {
+        serialization::Transport_router outRouter;
+        *outRouter.mutable_settings() = Convert(router.GetRoutingSetting());
+        *outRouter.mutable_graph() = Convert(router.GetGraph());
+        return outRouter;
+    }
+
+    transport_router::TransportRouter Convert(const serialization::Transport_router& router, const transport_catalogue::TransportCatalogue& catalogue) {
+        return {catalogue, Convert(router.settings()), Convert(router.graph())};
+    }
+
 }

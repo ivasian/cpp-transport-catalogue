@@ -12,25 +12,25 @@ namespace json {
     ReturnType::ReturnType(Builder& builder) : builder_(builder){
     }
     AfterKey ReturnType::Key(const std::string& key) {
-            builder_.Key(key);
-            return {builder_};
-        }
+        builder_.Key(key);
+        return {builder_};
+    }
     Builder& ReturnType::EndDict() {
-            builder_.EndDict();
-            return builder_;
-        }
+        builder_.EndDict();
+        return builder_;
+    }
     AfterStartDict ReturnType::StartDict() {
-            builder_.StartDict();
-            return {builder_};
-        }
+        builder_.StartDict();
+        return {builder_};
+    }
     AfterStartArray ReturnType::StartArray() {
-            builder_.StartArray();
-            return {builder_};
-        }
+        builder_.StartArray();
+        return {builder_};
+    }
     Builder& ReturnType::EndArray() {
-            builder_.EndArray();
-            return builder_;
-        }
+        builder_.EndArray();
+        return builder_;
+    }
 
 
     AfterStartArrayValue AfterStartArray::Value(const Node& node) {

@@ -4,34 +4,28 @@
 #include "router.h"
 #include "transport_router.h"
 #include "serialization.h"
-/*
-int main() {
-    using transport_catalogue::TransportCatalogue;
-    using renderer::RenderSettings;
-    using transport_router::RoutingSetting;
-    using transport_router::TransportRouter;
-
-    JsonReader jsonReader;
-    json::Document doc = json::Load(std::cin);
-    TransportCatalogue catalogue = jsonReader.BuildCatalogueBase(doc);
-    RenderSettings mapRenderer = jsonReader.GetMapRenderSettings(doc);
-    RoutingSetting routingSetting = jsonReader.LoadRoutingSettings(doc);
-    TransportRouter transportRouter(catalogue, routingSetting);
-
-
-    RequestHandler requestHandler(catalogue, mapRenderer, transportRouter);
-
-    json::Document result = requestHandler.ExecuteQuery(doc);
-    Print(result, std::cout);
-
-}
-*/
 
 using namespace std::literals;
 
 void PrintUsage(std::ostream& stream = std::cerr) {
     stream << "Usage: transport_catalogue [make_base|process_requests]\n"sv;
 }
+
+void PrintGraph(transport_router::Graph graph) {
+    auto edges = graph.GetEdges();
+    for(auto edge : edges) {
+        std::cout << edge.from << " " << edge.to << " " << edge.weight << " ";
+    }
+    std::cout << std::endl;
+    auto lists = graph.GetIncidenceLists();
+    for(auto list : lists) {
+        for(auto val : list) {
+            std::cout << val << " ";
+        }
+    }
+    std::cout << std::endl;
+}
+
 
 int main(int argc, char* argv[]) {
     if (argc != 2) {
@@ -46,31 +40,30 @@ int main(int argc, char* argv[]) {
         json::Document doc = json::Load(std::cin);
         TransportCatalogue catalogue = jsonReader.BuildCatalogueBase(doc);
         SerializationSetting serializationSetting = jsonReader.LoadSerializationSettings(doc);
-        serialization::TransportCatalogue catalogSerialization(serializationSetting.filename);
-        RenderSettings mapRenderer = jsonReader.GetMapRenderSettings(doc);
+        MapRenderer mapRenderer(jsonReader.GetMapRenderSettings(doc));
         RoutingSetting routingSetting = jsonReader.LoadRoutingSettings(doc);
-        TransportRouter transportRouter(catalogue, routingSetting);
+        TransportRouter router(catalogue, routingSetting);
+        {
+            std::ofstream output(serializationSetting.filename, std::ios::binary);
+            serialization::Serialize(output, catalogue, mapRenderer, router);
+        }
 
-        catalogSerialization.Serialize(catalogue, mapRenderer, routingSetting, transportRouter.GetGraph());
 
     } else if (mode == "process_requests"sv) {
         JsonReader jsonReader;
         json::Document doc = json::Load(std::cin);
         SerializationSetting serializationSetting = jsonReader.LoadSerializationSettings(doc);
-        serialization::TransportCatalogue catalogSerialization(serializationSetting.filename);
+
         TransportCatalogue catalogue;
-        RenderSettings mapRenderer;
-        transport_router::Graph graph;
-        RoutingSetting routingSetting;
-        catalogSerialization.Deserialize(catalogue, mapRenderer, routingSetting, graph);
-
-
-        TransportRouter transportRouter(catalogue, routingSetting);
+        MapRenderer mapRenderer;
+        TransportRouter transportRouter;
+        {
+            std::ifstream input(serializationSetting.filename, std::ios::binary);
+            serialization::Deserialize(input, catalogue, mapRenderer, transportRouter);
+        }
         RequestHandler requestHandler(catalogue, mapRenderer, transportRouter);
-
         json::Document result = requestHandler.ExecuteQuery(doc);
         Print(result, std::cout);
-        // process requests here
 
     } else {
         PrintUsage();
